@@ -1,0 +1,45 @@
+{
+  "name": "rhc-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for Robinhood Chain — lets any AI agent read on-chain stock-token positions, uiMultiplier yield, and swap, over the Model Context Protocol.",
+  "type": "module",
+  "bin": {
+    "rhc-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "robinhood-chain",
+    "arbitrum",
+    "uniswap-v4",
+    "defi",
+    "agentic",
+    "rwa"
+  ],
+  "author": "jumpbox (github.com/jumpboxtech)",
+  "license": "MIT",
+  "homepage": "https://jumpbox.tech",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "viem": "^2.21.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "@types/node": "^22.0.0"
+  }
+}
