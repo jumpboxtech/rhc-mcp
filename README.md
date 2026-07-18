@@ -11,8 +11,11 @@ on-chain stock-token positions, see the real total-return value ERC-20 reads hid
 over the same Model Context Protocol. Read tools need no key; swapping is off by default and heavily
 guarded.
 
-Built on [RHCSwap](https://github.com/jumpboxtech/rhcswap), which routes around the chain's modified
-UniversalRouter by talking to the Uniswap v4 PoolManager directly.
+Swaps go through Robinhood Chain's Uniswap v4 **UniversalRouter** directly — **nothing to deploy**. One
+catch worth knowing: the chain forks the v4 swap struct with an extra `minHopPriceX36` field, so stock
+Uniswap SDK calldata reverts. This encoder adds it (verified byte-identical to real on-chain swaps). The
+sibling repo [RHCSwap](https://github.com/jumpboxtech/rhcswap) is an alternate route (a tiny contract
+that hits the v4 PoolManager directly) if you'd rather not touch Permit2.
 
 ---
 
@@ -30,7 +33,7 @@ flowchart LR
     subgraph CHAIN["Robinhood Chain (Arbitrum Orbit, id 4663)"]
       R["stock tokens<br/>balanceOf + uiMultiplier"]
       Q["Uniswap v4 Quoter"]
-      S["RHCSwap → v4 PoolManager"]
+      S["UniversalRouter + Permit2<br/>(v4 swap)"]
     end
     A -->|off-chain trades| O
     A -->|on-chain, this repo| T
@@ -46,7 +49,7 @@ flowchart LR
 | `rhc_info` | read | Chain / RPC / contract addresses; reports whether swapping is enabled or read-only. |
 | `get_positions` | read | A wallet's stock-token positions: raw balance, `uiMultiplier`, the real total-return balance (`raw × multiplier ÷ 1e18`), and the accrued appreciation % that raw ERC-20 reads hide. |
 | `quote_swap` | read | Exact-input single-hop quote via the Uniswap v4 Quoter. Proves the pool has liquidity and sizes `minAmountOut`. |
-| `execute_swap` | **write** | Executes a swap via RHCSwap. Dry-run by default; guarded (see Safety). |
+| `execute_swap` | **write** | Executes a swap via the Uniswap v4 UniversalRouter (+ Permit2 for ERC-20 input) — no deployed contract. Dry-run by default; guarded (see Safety). |
 
 ### The `uiMultiplier` insight
 
@@ -94,11 +97,13 @@ Then ask your agent: *"What are my Robinhood Chain positions for 0x…?"* or *"Q
 - **Read-only by default** — with no `RHC_PRIVATE_KEY`, the server can only read; swaps are refused.
 - **Key never touches the tool surface** — the signer comes only from `RHC_PRIVATE_KEY`, never a tool
   argument, and is never returned or logged.
-- **Dry-run by default** — `execute_swap` returns the plan (expected out, enforced min out, recipient)
-  without sending unless the caller passes `dryRun: false`.
+- **Dry-run by default** — `execute_swap` returns the plan (expected out, enforced min out, and which
+  Permit2 approvals a real run would send) without sending unless the caller passes `dryRun: false`.
 - **Hard size cap** — `RHC_MAX_SWAP_AMOUNT` (whole input tokens, default `1`) bounds any single swap.
 - **Slippage always enforced** — a real `minAmountOut` is required, taken from the argument or derived
-  from a fresh quote minus `slippageBps`; the v4 price limit alone gives none.
+  from a fresh quote minus `slippageBps`.
+- **Scoped Permit2 grant** — the Permit2 → router allowance is scoped to `amountIn` with a short (~1h)
+  expiry, not an unbounded standing approval.
 
 ## Configuration
 
@@ -106,13 +111,14 @@ Then ask your agent: *"What are my Robinhood Chain positions for 0x…?"* or *"Q
 | --- | --- | --- |
 | `RHC_RPC_URL` | – | RPC endpoint (defaults to the public mainnet RPC). |
 | `RHC_PRIVATE_KEY` | swapping | Signer key. Unset ⇒ read-only. Keep it in a real secret store. |
-| `RHCSWAP_ADDRESS` | swapping | Deployed [RHCSwap](https://github.com/jumpboxtech/rhcswap) helper. |
 | `RHC_MAX_SWAP_AMOUNT` | swapping | Per-swap input cap in whole tokens (default `1`). |
 
 ## Robinhood Chain addresses (chain id `4663`)
 
 | Contract | Address |
 | --- | --- |
+| UniversalRouter (the real one; 2 decoys exist) | `0x8876789976DECBFcbBBe364623C63652dB8c0904` |
+| Permit2 | `0x000000000022D473030F116dDEE9F6B43aC78BA3` |
 | Uniswap v4 PoolManager | `0x8366a39CC670B4001A1121B8F6A443A643e40951` |
 | StateView | `0xf3334192d15450cdd385c8b70e03f9a6bd9e673b` |
 | Quoter | `0x8dc178efb8111bb0973dd9d722ebeff267c98f94` |
@@ -121,9 +127,10 @@ RPC: `https://rpc.mainnet.chain.robinhood.com` · Explorer: `robinhoodchain.bloc
 
 ## Scope & limits
 
-Exact-input, single-hop, hookless pools — the same deliberate minimalism as RHCSwap. The known-token
-registry is a small starter set (USDG, NVDA); pass any 0x address directly. Unaudited — read it before
-you route funds through it.
+Exact-input, single-hop, hookless pools — deliberately minimal. Exact-output and multi-hop aren't
+covered (and haven't been checked for the same `minHopPriceX36` quirk). The known-token registry is a
+small starter set (USDG, NVDA); pass any 0x address directly. Unaudited — read it before you route
+funds through it.
 
 ## License
 

@@ -87,29 +87,48 @@ export const quoterAbi = [
   },
 ] as const;
 
-/** RHCSwap helper (https://github.com/jumpboxtech/rhcswap). */
-export const rhcSwapAbi = [
+/** Uniswap UniversalRouter — the standard exact-input swap entrypoint (with deadline). */
+export const universalRouterAbi = [
   {
     type: "function",
-    name: "swap",
+    name: "execute",
+    stateMutability: "payable",
+    inputs: [
+      { name: "commands", type: "bytes" },
+      { name: "inputs", type: "bytes[]" },
+      { name: "deadline", type: "uint256" },
+    ],
+    outputs: [],
+  },
+] as const;
+
+/** Permit2 — UniversalRouter pulls ERC-20 input through this allowance manager. */
+export const permit2Abi = [
+  {
+    type: "function",
+    name: "allowance",
+    stateMutability: "view",
+    inputs: [
+      { name: "user", type: "address" },
+      { name: "token", type: "address" },
+      { name: "spender", type: "address" },
+    ],
+    outputs: [
+      { name: "amount", type: "uint160" },
+      { name: "expiration", type: "uint48" },
+      { name: "nonce", type: "uint48" },
+    ],
+  },
+  {
+    type: "function",
+    name: "approve",
     stateMutability: "nonpayable",
     inputs: [
-      {
-        name: "key",
-        type: "tuple",
-        components: [
-          { name: "currency0", type: "address" },
-          { name: "currency1", type: "address" },
-          { name: "fee", type: "uint24" },
-          { name: "tickSpacing", type: "int24" },
-          { name: "hooks", type: "address" },
-        ],
-      },
-      { name: "zeroForOne", type: "bool" },
-      { name: "amountIn", type: "uint256" },
-      { name: "minAmountOut", type: "uint256" },
-      { name: "recipient", type: "address" },
+      { name: "token", type: "address" },
+      { name: "spender", type: "address" },
+      { name: "amount", type: "uint160" },
+      { name: "expiration", type: "uint48" },
     ],
-    outputs: [{ name: "amountOut", type: "uint256" }],
+    outputs: [],
   },
 ] as const;

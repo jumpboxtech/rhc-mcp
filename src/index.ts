@@ -40,7 +40,7 @@ server.registerTool(
       explorer: "https://robinhoodchain.blockscout.com",
       contracts: ADDRESSES,
       knownTokens: KNOWN_TOKENS,
-      swapEnabled: Boolean(w && process.env.RHCSWAP_ADDRESS),
+      swapEnabled: Boolean(w),
       signer: w ? w.account : null,
       note: "Stock tokens are ERC-8056 total-return tokens: raw balanceOf is static; uiMultiplier() scales it to the real value.",
     });
@@ -98,7 +98,7 @@ server.registerTool(
   {
     title: "Execute a swap",
     description:
-      "Execute an exact-input single-hop swap via the RHCSwap helper. SAFETY: dryRun defaults to true (returns the plan without sending); amountIn is capped by RHC_MAX_SWAP_AMOUNT; a real minAmountOut is always enforced (from the arg or a fresh quote minus slippageBps). Requires RHC_PRIVATE_KEY and RHCSWAP_ADDRESS to actually send.",
+      "Execute an exact-input single-hop swap through Robinhood Chain's Uniswap v4 UniversalRouter (no deployed contract needed). SAFETY: dryRun defaults to true (returns the plan + which Permit2 approvals a real run would send, without sending); amountIn is capped by RHC_MAX_SWAP_AMOUNT; a real minAmountOut is always enforced (from the arg or a fresh quote minus slippageBps). ERC-20 input flows through Permit2. Output is taken to the signer. Requires RHC_PRIVATE_KEY to actually send.",
     inputSchema: {
       tokenIn: z.string().describe("input token symbol or 0x address"),
       tokenOut: z.string().describe("output token symbol or 0x address"),
@@ -113,7 +113,9 @@ server.registerTool(
         .describe("slippage tolerance in bps when minAmountOut omitted (default 50 = 0.5%)"),
       fee: z.number().optional().describe("pool fee (default 3000)"),
       tickSpacing: z.number().optional().describe("pool tick spacing (default 60)"),
-      recipient: addressSchema.optional().describe("output recipient (default: the signer)"),
+      recipient: addressSchema
+        .optional()
+        .describe("must equal the signer if given; output is always taken to the signer"),
       dryRun: z
         .boolean()
         .optional()

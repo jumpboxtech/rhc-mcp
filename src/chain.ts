@@ -25,11 +25,18 @@ export const robinhoodChain = defineChain({
   },
 });
 
-/** Canonical Uniswap v4 + core contracts on Robinhood Chain. */
+/**
+ * Canonical Uniswap v4 + core contracts on Robinhood Chain.
+ * NOTE: two decoy UniversalRouter addresses exist on-chain — this is the real
+ * one (verified against Uniswap's deployment list and live swap txs). It takes
+ * STANDARD v4 calldata; no chain-specific modification is needed for exact-in.
+ */
 export const ADDRESSES = {
   poolManager: "0x8366a39CC670B4001A1121B8F6A443A643e40951",
   stateView: "0xf3334192d15450cdd385c8b70e03f9a6bd9e673b",
   quoter: "0x8dc178efb8111bb0973dd9d722ebeff267c98f94",
+  universalRouter: "0x8876789976DECBFcbBBe364623C63652dB8c0904",
+  permit2: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
 } as const satisfies Record<string, Address>;
 
 /**
